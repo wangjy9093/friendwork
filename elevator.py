@@ -21,7 +21,11 @@ class Elevator:
         self.direction = 1
 
     def load_passenger(self, passenger):
-        if passenger.destination_floor != self.current_floor:
+        if passenger.destination_floor-1 == self.current_floor:
+           messagebox.showinfo("提示", "乘客的目标楼层和当前楼层相同，无法加载")
+           return
+
+        if passenger.destination_floor-1 != self.current_floor:
             if passenger.destination_floor not in self.destination_floors:
                 if len(self.passengers) < self.max_passengers and self.weight + passenger.weight <= self.max_weight:
                     self.passengers.append(passenger)
@@ -34,19 +38,24 @@ class Elevator:
                 if len(self.passengers) < self.max_passengers and self.weight + passenger.weight <= self.max_weight:
                     self.passengers.append(passenger)
                     self.weight += passenger.weight
-                messagebox.showinfo("乘客加载", f"乘客 {passenger.name} 已加载到电梯 {self.number}")
+                    messagebox.showinfo("乘客加载", f"乘客 {passenger.name} 已加载到电梯 {self.number}")
         else:
-            messagebox.showinfo("提示", f"乘客 {passenger.name} 的目标楼层和当前楼层相同")
+            messagebox.showinfo("提示", f"乘客 {passenger.name} 的目标楼层和当前楼层相同，无法加载")
 
     def move_to_floor(self, floor):
         if floor in self.floors_served:
             self.previous_floor = self.current_floor
             self.current_floor = floor-1
 
+            # 如果当前楼层为1且方向为向下，则改为向上
+            if self.current_floor == 0 and self.direction == -1:
+                self.direction = 1
+
             # 添加安全检查以避免移除不存在的目标楼层
             if floor in self.destination_floors:
                 self.destination_floors.remove(floor)
-                self.passengers = [passenger for passenger in self.passengers if passenger.destination_floor != floor]
+                self.passengers = [passenger for passenger in self.passengers if
+                                   passenger.destination_floor != floor]
                 self.weight = sum(passenger.weight for passenger in self.passengers)
                 messagebox.showinfo("电梯移动", f"电梯 {self.number} 已移动到 {floor} 楼")
 
@@ -56,17 +65,11 @@ class Elevator:
                     self.direction = 1
                 else:
                     self.direction = -1
-            else:
-                messagebox.showerror("错误", f"电梯 {self.number} 的目标楼层列表中没有楼层 {floor}")
 
             # 调用更新目标楼层的函数，实现目标楼层的实时更新
             update_destinations(self.number, self.destination_floors)
         else:
             messagebox.showerror("错误", f"电梯 {self.number} 不服务楼层 {floor}")
-
-        # 在这里添加检查当前楼层为1时的标志位更新逻辑
-        if self.current_floor == 1 and self.direction == -1:
-            self.direction = 1  # 如果当前楼层为1且方向为向下，则改为向上
 
     def get_next_floor(self):
         if self.destination_floors:
@@ -82,12 +85,10 @@ class Elevator:
         else:
             return self.current_floor
 
-
 elevator1 = Elevator(1, list(range(1, 21)), 10, 800)
 elevator2 = Elevator(2, list(range(1, 21, 2)), 10, 800)
 elevator3 = Elevator(3, list(range(2, 21, 2)), 10, 800)
 elevator4 = Elevator(4, list(range(1, 21)), 20, 2000)
-
 
 def load_passenger():
     name = name_entry.get()
@@ -95,21 +96,30 @@ def load_passenger():
     destination_floor = int(floor_entry.get())
 
     # 检查乘客姓名是否重复
-    if any(passenger.name == name for passenger in elevator1.passengers +
-                                                   elevator2.passengers +
-                                                   elevator3.passengers +
-                                                   elevator4.passengers):
+    if any(passenger.name == name for elevator in [elevator1, elevator2, elevator3, elevator4] for passenger in elevator.passengers):
         messagebox.showerror("错误", f"姓名为 {name} 的乘客已存在，请输入其他姓名")
         return
 
     passenger = Passenger(name, weight, destination_floor)
     elevator_number = elevator_var.get()
+    current_floor = 0
     if elevator_number == 1:
-        if passenger.destination_floor in elevator1.floors_served:
-            elevator1.load_passenger(passenger)
-            update_destinations(elevator1.number, elevator1.destination_floors)
-        else:
-            messagebox.showerror("错误", f"电梯1不服务楼层 {passenger.destination_floor}")
+        current_floor = elevator1.current_floor
+    elif elevator_number == 2:
+        current_floor = elevator2.current_floor
+    elif elevator_number == 3:
+        current_floor = elevator3.current_floor
+    elif elevator_number == 4:
+        current_floor = elevator4.current_floor
+
+    # 检查目标楼层是否和当前楼层相同
+    if passenger.destination_floor-1 == current_floor:
+        messagebox.showinfo("提示", "1乘客的目标楼层和当前楼层相同，无法加载")
+        return
+
+    if elevator_number == 1:
+        elevator1.load_passenger(passenger)
+        update_destinations(elevator1.number, elevator1.destination_floors)
     elif elevator_number == 2:
         if passenger.destination_floor in elevator2.floors_served:
             elevator2.load_passenger(passenger)
@@ -129,27 +139,32 @@ def load_passenger():
         else:
             messagebox.showerror("错误", f"电梯4不服务楼层 {passenger.destination_floor}")
 
-
-
 def update_destinations(elevator_number, destination_floors):
     for elevator, labels in zip([elevator1, elevator2, elevator3, elevator4], elevator_labels):
         if elevator.number == elevator_number:
-            labels[2].config(text=f"目标楼层: {destination_floors}")
+            if destination_floors:
+                labels[2].config(text=f"目标楼层: {destination_floors}")
+            else:
+                labels[2].config(text=f"目标楼层: ")
             break
 
 def move_elevator():
     elevator_number = elevator_var.get()
     if elevator_number == 1:
-        elevator1.move_to_floor(elevator1.get_next_floor())
+        next_floor = elevator1.get_next_floor()
+        elevator1.move_to_floor(next_floor)
         update_display()
     elif elevator_number == 2:
-        elevator2.move_to_floor(elevator2.get_next_floor())
+        next_floor = elevator2.get_next_floor()
+        elevator2.move_to_floor(next_floor)
         update_display()
     elif elevator_number == 3:
-        elevator3.move_to_floor(elevator3.get_next_floor())
+        next_floor = elevator3.get_next_floor()
+        elevator3.move_to_floor(next_floor)
         update_display()
     elif elevator_number == 4:
-        elevator4.move_to_floor(elevator4.get_next_floor())
+        next_floor = elevator4.get_next_floor()
+        elevator4.move_to_floor(next_floor)
         update_display()
 
 def update_display():
@@ -183,7 +198,7 @@ def update_display():
                     canvas.create_text(425, 20 + row * 20, text=f"上")
                 elif elevator2.previous_floor > elevator2.current_floor:
                     canvas.create_text(425, 20 + row * 20, text=f"下")
-            elif col == 3 and elevator3.current_floor == 20 - row:
+            elif col == 3 and elevator3.current_floor == 20 - row :
                 canvas.create_rectangle(x1, y1, x2, y2, fill="orange")
                 if elevator3.previous_floor <= elevator3.current_floor:
                     canvas.create_text(575, 20 + row * 20, text=f"上")
