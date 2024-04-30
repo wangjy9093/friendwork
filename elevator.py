@@ -21,31 +21,32 @@ class Elevator:
         self.direction = 1
 
     def load_passenger(self, passenger):
-        if passenger.destination_floor-1 == self.current_floor:
-           messagebox.showinfo("提示", "乘客的目标楼层和当前楼层相同，无法加载")
-           return
-
-        if passenger.destination_floor-1 != self.current_floor:
-            if passenger.destination_floor not in self.destination_floors:
-                if len(self.passengers) < self.max_passengers and self.weight + passenger.weight <= self.max_weight:
-                    self.passengers.append(passenger)
-                    self.weight += passenger.weight
-                    self.destination_floors.append(passenger.destination_floor)
-                    messagebox.showinfo("乘客加载", f"乘客 {passenger.name} 已加载到电梯 {self.number}")
+        if passenger.destination_floor in self.floors_served:
+            if passenger.destination_floor == self.current_floor:
+                messagebox.showinfo("提示", "乘客的目标楼层和当前楼层相同，无法加载")
+                return
+            if passenger.destination_floor != self.current_floor:
+                if passenger.destination_floor not in self.destination_floors:
+                    if len(self.passengers) < self.max_passengers and self.weight + passenger.weight <= self.max_weight:
+                        self.passengers.append(passenger)
+                        self.weight += passenger.weight
+                        self.destination_floors.append(passenger.destination_floor)
+                        messagebox.showinfo("乘客加载", f"乘客 {passenger.name} 已加载到电梯 {self.number}")
+                    else:
+                        messagebox.showerror("错误", f"电梯 {self.number} 已满，无法加载乘客 {passenger.name}")
                 else:
-                    messagebox.showerror("错误", f"电梯 {self.number} 已满，无法加载乘客 {passenger.name}")
+                    if len(self.passengers) < self.max_passengers and self.weight + passenger.weight <= self.max_weight:
+                        self.passengers.append(passenger)
+                        self.weight += passenger.weight
+                        messagebox.showinfo("乘客加载", f"乘客 {passenger.name} 已加载到电梯 {self.number}")
             else:
-                if len(self.passengers) < self.max_passengers and self.weight + passenger.weight <= self.max_weight:
-                    self.passengers.append(passenger)
-                    self.weight += passenger.weight
-                    messagebox.showinfo("乘客加载", f"乘客 {passenger.name} 已加载到电梯 {self.number}")
+                messagebox.showinfo("提示", f"乘客 {passenger.name} 的目标楼层和当前楼层相同，无法加载")
         else:
-            messagebox.showinfo("提示", f"乘客 {passenger.name} 的目标楼层和当前楼层相同，无法加载")
-
+            messagebox.showerror("错误", f"电梯 {self.number} 不服务楼层 {passenger.destination_floor}")
     def move_to_floor(self, floor):
         if floor in self.floors_served:
             self.previous_floor = self.current_floor
-            self.current_floor = floor-1
+            self.current_floor = floor
 
             # 如果当前楼层为1且方向为向下，则改为向上
             if self.current_floor == 0 and self.direction == -1:
@@ -85,14 +86,14 @@ class Elevator:
         else:
             return self.current_floor
 
-elevator1 = Elevator(1, list(range(1, 21)), 10, 800)
-elevator2 = Elevator(2, list(range(1, 21, 2)), 10, 800)
-elevator3 = Elevator(3, list(range(2, 21, 2)), 10, 800)
-elevator4 = Elevator(4, list(range(1, 21)), 20, 2000)
+elevator1 = Elevator(1, list(range(0, 21)), 10, 800)
+elevator2 = Elevator(2, [0, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19], 10, 800)
+elevator3 = Elevator(3, list(range(0, 21, 2)), 10, 800)
+elevator4 = Elevator(4, list(range(0, 21)), 20, 2000)
 
 def load_passenger():
     name = name_entry.get()
-    weight = int(weight_entry.get())
+    weight = float(weight_entry.get())
     destination_floor = int(floor_entry.get())
 
     # 检查乘客姓名是否重复
@@ -180,46 +181,46 @@ def update_display():
             canvas.create_rectangle(50 + col * 150, 10, 200 + col * 150, 30, fill="lightblue")
         canvas.create_text(125 + col * 150, 20, text=text)
 
-    for row in range(1, 21):
-        canvas.create_rectangle(50, 10 + row * 20, 200, 30 + row * 20, fill="lightgreen")
-        canvas.create_text(125, 20 + row * 20, text=f"{21 - row}")
+    for row in range(0, 21):
+        canvas.create_rectangle(50, 30 + row * 20, 200, 50 + row * 20, fill="lightgreen")
+        canvas.create_text(125, 40 + row * 20, text=f"{20 - row}")
         for col in range(1, 5):
-            x1, y1, x2, y2 = 200 + (col - 1) * 150, 10 + row * 20, 350 + (col - 1) * 150, 30 + row * 20
+            x1, y1, x2, y2 = 200 + (col - 1) * 150, 30 + row * 20, 350 + (col - 1) * 150, 50 + row * 20
             canvas.create_rectangle(x1, y1, x2, y2, fill="white")
             if col == 1 and elevator1.current_floor == 20 - row:
                 canvas.create_rectangle(x1, y1, x2, y2, fill="orange")
                 if elevator1.previous_floor <= elevator1.current_floor:
-                    canvas.create_text(275, 20 + row * 20, text=f"上")
+                    canvas.create_text(275, 40 + row * 20, text=f"上")
                 elif elevator1.previous_floor > elevator1.current_floor:
-                    canvas.create_text(275, 20 + row * 20, text=f"下")
+                    canvas.create_text(275, 40 + row * 20, text=f"下")
             elif col == 2 and elevator2.current_floor == 20 - row:
                 canvas.create_rectangle(x1, y1, x2, y2, fill="orange")
                 if elevator2.previous_floor <= elevator2.current_floor:
-                    canvas.create_text(425, 20 + row * 20, text=f"上")
+                    canvas.create_text(425, 40 + row * 20, text=f"上")
                 elif elevator2.previous_floor > elevator2.current_floor:
-                    canvas.create_text(425, 20 + row * 20, text=f"下")
+                    canvas.create_text(425, 40 + row * 20, text=f"下")
             elif col == 3 and elevator3.current_floor == 20 - row :
                 canvas.create_rectangle(x1, y1, x2, y2, fill="orange")
                 if elevator3.previous_floor <= elevator3.current_floor:
-                    canvas.create_text(575, 20 + row * 20, text=f"上")
+                    canvas.create_text(575, 40 + row * 20, text=f"上")
                 elif elevator3.previous_floor > elevator3.current_floor:
-                    canvas.create_text(575, 20 + row * 20, text=f"下")
+                    canvas.create_text(575, 40 + row * 20, text=f"下")
             elif col == 4 and elevator4.current_floor == 20 - row:
                 canvas.create_rectangle(x1, y1, x2, y2, fill="orange")
                 if elevator4.previous_floor <= elevator4.current_floor:
-                    canvas.create_text(725, 20 + row * 20, text=f"上")
+                    canvas.create_text(725, 40 + row * 20, text=f"上")
                 elif elevator4.previous_floor > elevator4.current_floor:
-                    canvas.create_text(725, 20 + row * 20, text=f"下")
+                    canvas.create_text(725, 40 + row * 20, text=f"下")
 
     window.after(1000, update_display)
 
 window = tk.Tk()
-window.title("电梯控制系统")
+window.title("电梯控制系统-王静怡&张芸姝")
 
 main_frame = tk.Frame(window)
 main_frame.pack(side=tk.TOP)
 
-canvas = tk.Canvas(main_frame, width=800, height=430)
+canvas = tk.Canvas(main_frame, width=800, height=450)
 canvas.pack(side=tk.LEFT, padx=10, pady=10)
 
 sub_frame = tk.Frame(window)
@@ -229,9 +230,9 @@ elevator_labels = []
 
 for i in range(4):
     elevator_frame = tk.Frame(sub_frame)
-    elevator_frame.pack(side=tk.LEFT, padx=20)
+    elevator_frame.pack(side=tk.LEFT, padx=55)
     if i == 0 or i == 3:
-        elevator_label = tk.Label(elevator_frame, text=f"电梯{i+1} （1-20）")
+        elevator_label = tk.Label(elevator_frame, text=f"电梯{i+1} （0-20）")
         elevator_label.pack()
     elif i == 1:
         elevator_label = tk.Label(elevator_frame, text=f"电梯{i + 1} （单数楼层）")
@@ -260,7 +261,7 @@ name_label.pack(side=tk.TOP)
 name_entry = tk.Entry(input_frame)
 name_entry.pack(side=tk.TOP, padx=5)
 
-weight_label = tk.Label(input_frame, text="体重:")
+weight_label = tk.Label(input_frame, text="体重(kg):")
 weight_label.pack(side=tk.TOP)
 
 weight_entry = tk.Entry(input_frame)
